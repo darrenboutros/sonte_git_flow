@@ -3,6 +3,8 @@ package fr.darren.spring.stone_git_flow.payroll.rest;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,40 +29,44 @@ public class EmployeeController {
 		return employeeRepository.findAll();
 	}
 	// end::get-aggregate-root[]
-	
-	
+
+
 	@PostMapping("/employees")
-	  Employee newEmployee(@RequestBody Employee newEmployee) {
-	    return employeeRepository.save(newEmployee);
-	  }
+	Employee newEmployee(@RequestBody Employee newEmployee) {
+		return employeeRepository.save(newEmployee);
+	}
 
-	  // Single item
-	  
-	  @GetMapping("/employees/{id}")
-	  Employee one(@PathVariable Long id) {
-	    
-	    return employeeRepository.findById(id)
-	      .orElseThrow(() -> new EmployeeNotFoundException(id));
-	  }
+	// Single item
 
-	  @PutMapping("/employees/{id}")
-	  Employee replaceEmployee(@RequestBody Employee newEmployee, @PathVariable Long id) {
-	    
-		  
-	    return employeeRepository.findById(id)
-	      .map(employee -> {
-	        employee.setName(newEmployee.getName());
-	        employee.setRole(newEmployee.getRole());
-	        return employeeRepository.save(employee);
-	      })
-	      .orElseGet(() -> {
-	        newEmployee.setId(id);
-	        return employeeRepository.save(newEmployee);
-	      });
-	  }
+	@GetMapping("/employees/{id}")
+	EntityModel<Employee> one(@PathVariable Long id) {
 
-	  @DeleteMapping("/employees/{id}")
-	  void deleteEmployee(@PathVariable Long id) {
-		  employeeRepository.deleteById(id);
-	  }
+		Employee employee = employeeRepository.findById(id)
+				.orElseThrow(() -> new EmployeeNotFoundException(id));
+		
+		return EntityModel.of(employee, //
+				WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(EmployeeController.class).one(id)).withSelfRel(),
+				WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(EmployeeController.class).all()).withRel("employees"));
+	}
+
+	@PutMapping("/employees/{id}")
+	Employee replaceEmployee(@RequestBody Employee newEmployee, @PathVariable Long id) {
+
+
+		return employeeRepository.findById(id)
+				.map(employee -> {
+					employee.setName(newEmployee.getName());
+					employee.setRole(newEmployee.getRole());
+					return employeeRepository.save(employee);
+				})
+				.orElseGet(() -> {
+					newEmployee.setId(id);
+					return employeeRepository.save(newEmployee);
+				});
+	}
+
+	@DeleteMapping("/employees/{id}")
+	void deleteEmployee(@PathVariable Long id) {
+		employeeRepository.deleteById(id);
+	}
 }
